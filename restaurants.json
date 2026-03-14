@@ -22,8 +22,8 @@
     "id": "17734947234465",
     "name": "宵夜牛肉麵大王",
     "address": "臺北市大安區安和路二段74巷4號",
-    "city": "臺北市",
-    "region": "北市大安區",
+    "city": "台北市",
+    "region": "大安區",
     "cuisine": "牛肉麵",
     "recs": [
       "新開幕",
@@ -34,8 +34,8 @@
     ],
     "notes": "",
     "url": "https://www.instagram.com/reels/DQZTE5GElB8/",
-    "lat": null,
-    "lng": null,
+    "lat": 25.0338,
+    "lng": 121.5515,
     "date": "2026年03月14日"
   }
 ]
