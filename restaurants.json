@@ -2,7 +2,7 @@
   {
     "id": "17734926301530",
     "name": "隣tonari 拉麵",
-    "address": "台北市大安區延吉街No. 60號",
+    "address": "台北市大安區延吉街60號",
     "city": "台北市",
     "region": "大安區",
     "cuisine": "日式拉麵",
@@ -14,8 +14,8 @@
     ],
     "notes": "",
     "url": "https://www.instagram.com/reel/DPq2AfkkdKQ/?igsh=dmxqaTAyNWF5am9y",
-    "lat": null,
-    "lng": null,
+    "lat": 25.0408,
+    "lng": 121.5553,
     "date": "2026年03月14日"
   },
   {
