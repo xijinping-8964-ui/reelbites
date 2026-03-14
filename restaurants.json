@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0d0c0a">
+  <title>ReelBites</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    :root {
+      --bg:#0d0c0a; --surface:#161310; --surface2:#1e1a16; --surface3:#27231e;
+      --amber:#e8a84c; --amber-dim:#9e6f28; --amber-glow:rgba(232,168,76,.13);
+      --terra:#c4614a; --terra-soft:rgba(196,97,74,.15);
+      --green:#5db88a; --green-soft:rgba(93,184,138,.12);
+      --cream:#f0e6d3; --text:#d8caba; --text-dim:#7a6e60; --text-muted:#443d35;
+      --border:#252118; --border2:#302a22;
+      --safe-b:env(safe-area-inset-bottom,0px);
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%;overflow:hidden}
+    body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;font-size:15px;display:flex;flex-direction:column}
+    .screen{display:none;flex-direction:column;height:100%;overflow:hidden}
+    .screen.active{display:flex}
+
+    /* ── SETUP ── */
+    #setupScreen{align-items:center;justify-content:center;padding:24px 20px;overflow-y:auto}
+    .setup-card{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:32px 24px 28px}
+    .setup-logo{font-family:'Playfair Display',serif;font-size:30px;color:var(--amber);text-align:center;margin-bottom:4px}
+    .setup-logo em{font-style:italic;color:var(--terra)}
+    .setup-tag{text-align:center;color:var(--text-dim);font-size:14px;margin-bottom:24px;line-height:1.6}
+    .tip-banner{background:var(--amber-glow);border:1px solid var(--amber-dim);border-radius:8px;padding:11px 14px;font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:20px}
+    .tip-banner strong{color:var(--amber)}
+
+    /* ── FORM ── */
+    .fg{margin-bottom:16px}
+    .fl{display:block;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);margin-bottom:7px}
+    .fl-sub{color:var(--text-muted);font-size:10px;text-transform:none;font-weight:400;letter-spacing:0}
+    .fi,.fta{width:100%;background:var(--surface2);border:1.5px solid var(--border2);color:var(--cream);padding:12px 14px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .18s;-webkit-appearance:none}
+    .fi:focus,.fta:focus{border-color:var(--amber-dim)}
+    .fi::placeholder,.fta::placeholder{color:var(--text-muted)}
+    .fta{resize:vertical;line-height:1.55}
+    .fhint{font-size:12px;color:var(--text-muted);margin-top:5px;line-height:1.5}
+    .fhint a{color:var(--amber-dim)}
+    .frow{display:flex;gap:10px}
+    .frow .fg{flex:1;min-width:0}
+
+    /* ── BUTTONS ── */
+    .btn{border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;letter-spacing:.01em;border-radius:9px;transition:all .18s;-webkit-appearance:none}
+    .btn:active{transform:scale(.96)}
+    .btn-a{background:var(--amber);color:#0d0c0a}
+    .btn-a:hover{background:#d4923a}
+    .btn-t{background:var(--terra);color:#fff}
+    .btn-t:hover{background:#b34e39}
+    .btn-g{background:transparent;color:var(--text-dim);border:1.5px solid var(--border2)}
+    .btn-g:hover{border-color:var(--amber-dim);color:var(--amber)}
+    .btn-d{background:var(--terra-soft);color:var(--terra);border:1.5px solid rgba(196,97,74,.3)}
+    .btn-full{width:100%;padding:14px;font-size:15px}
+    .btn-sm{padding:8px 16px;font-size:13px}
+    .btn-icon{background:var(--surface3);border:1.5px solid var(--border2);color:var(--text-dim);width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+
+    /* ── STATUS ── */
+    .sb{display:none;padding:11px 14px;border-radius:8px;font-size:13px;line-height:1.55;margin-bottom:14px}
+    .sb.loading{display:block;background:var(--amber-glow);border:1px solid var(--amber-dim);color:var(--amber)}
+    .sb.error{display:block;background:var(--terra-soft);border:1px solid rgba(196,97,74,.4);color:#e07060}
+    .sb.success{display:block;background:var(--green-soft);border:1px solid rgba(93,184,138,.4);color:var(--green)}
+    .spin{display:inline-block;width:12px;height:12px;border:2px solid var(--amber-dim);border-top-color:var(--amber);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── MAP SCREEN ── */
+    #mapScreen{position:relative}
+    .topbar{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0;z-index:20}
+    .logo-sm{font-family:'Playfair Display',serif;font-size:18px;color:var(--amber);white-space:nowrap;margin-right:2px}
+    .logo-sm em{font-style:italic;color:var(--terra)}
+    .topbar-filters{flex:1;display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .topbar-filters::-webkit-scrollbar{display:none}
+    .fsel{background:var(--surface2);border:1.5px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;white-space:nowrap;flex-shrink:0;-webkit-appearance:none;cursor:pointer;max-width:110px}
+    #map{flex:1;z-index:0}
+    .leaflet-container{background:#1a1612}
+    .leaflet-tile{filter:brightness(.52) saturate(.38) hue-rotate(5deg)}
+    .leaflet-control-zoom a{background:var(--surface2)!important;color:var(--text)!important;border-color:var(--border)!important}
+    .leaflet-control-attribution{background:rgba(13,12,10,.7)!important;color:var(--text-muted)!important}
+    .leaflet-popup-content-wrapper{background:var(--surface2)!important;border:1px solid var(--border2)!important;border-radius:10px!important;box-shadow:0 8px 24px rgba(0,0,0,.5)!important}
+    .leaflet-popup-tip{background:var(--surface2)!important}
+    .leaflet-popup-content{margin:12px 15px!important;font-family:'DM Sans',sans-serif!important;color:var(--text)!important}
+    .pp-name{font-family:'Playfair Display',serif;font-size:15px;color:var(--cream);margin-bottom:3px}
+    .pp-meta{font-size:12px;color:var(--text-dim)}
+
+    /* ── FABs ── */
+    .fab-wrap{position:absolute;bottom:calc(18px + var(--safe-b));right:16px;z-index:30;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+    .fab{width:54px;height:54px;border-radius:16px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 20px rgba(0,0,0,.5);transition:all .18s}
+    .fab:active{transform:scale(.92)}
+    .fab-add{background:var(--amber);color:#0d0c0a}
+    .fab-rnd{background:var(--terra);color:#fff}
+    .fab-lst{background:var(--surface2);color:var(--text-dim);border:1.5px solid var(--border2)}
+
+    /* ── BOTTOM SHEETS ── */
+    .sheet-ov{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:100;pointer-events:none;transition:background .28s}
+    .sheet-ov.dim{background:rgba(0,0,0,.65);pointer-events:all}
+    .sheet{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-radius:20px 20px 0 0;border-top:1px solid var(--border2);z-index:101;transform:translateY(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);max-height:90vh;display:flex;flex-direction:column;padding-bottom:var(--safe-b)}
+    .sheet.open{transform:translateY(0)}
+    .sh-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:10px auto 0;flex-shrink:0}
+    .sh-head{padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
+    .sh-title{font-family:'Playfair Display',serif;font-size:18px;color:var(--cream)}
+    .sh-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+    .sh-body::-webkit-scrollbar{display:none}
+
+    /* ── LIST SHEET ── */
+    .list-sb-wrap{padding:12px 14px 8px;border-bottom:1px solid var(--border);flex-shrink:0}
+    .list-sb{background:var(--surface2);border:1.5px solid var(--border2);color:var(--cream);padding:10px 14px 10px 38px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;width:100%;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237a6e60' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:12px center}
+    .r-item{padding:14px 18px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:12px}
+    .r-item:active{background:var(--surface2)}
+    .r-dot{width:10px;height:10px;border-radius:50%;background:var(--terra);flex-shrink:0}
+    .r-info{flex:1;min-width:0}
+    .r-name{font-family:'Playfair Display',serif;font-size:16px;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .r-meta{font-size:12px;color:var(--text-dim);margin-top:2px}
+    .r-tag{display:inline-block;background:var(--terra-soft);border:1px solid rgba(196,97,74,.3);color:var(--terra);padding:1px 8px;border-radius:20px;font-size:11px;margin-left:6px;vertical-align:middle}
+    .r-arr{color:var(--text-muted);font-size:18px;flex-shrink:0}
+    .empty-msg{padding:50px 20px;text-align:center;color:var(--text-muted);line-height:1.8}
+    .empty-emoji{font-size:38px;margin-bottom:10px}
+
+    /* ── DETAIL SHEET ── */
+    .det-body{padding:18px}
+    .det-name{font-family:'Playfair Display',serif;font-size:22px;color:var(--cream);line-height:1.3;margin-bottom:8px}
+    .det-tag{display:inline-block;background:var(--terra-soft);border:1px solid rgba(196,97,74,.3);color:var(--terra);padding:3px 12px;border-radius:20px;font-size:13px;margin-bottom:18px}
+    .det-sec{margin-bottom:18px}
+    .det-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);margin-bottom:8px}
+    .det-val{font-size:15px;color:var(--text);line-height:1.65}
+    .rec-item{background:var(--surface2);border-left:2.5px solid var(--terra);border-radius:0 8px 8px 0;padding:9px 13px;margin-bottom:6px;font-size:14px;color:var(--text);line-height:1.55}
+    .reel-lnk{display:flex;align-items:center;gap:8px;color:var(--amber);text-decoration:none;font-size:14px;font-weight:500;padding:10px 14px;background:var(--amber-glow);border:1px solid var(--amber-dim);border-radius:9px;transition:all .18s}
+    .reel-lnk:active{background:rgba(232,168,76,.2)}
+    .det-foot{display:flex;gap:10px;padding:14px 18px calc(14px + var(--safe-b));border-top:1px solid var(--border);flex-shrink:0}
+
+    /* ── ADD SHEET ── */
+    .add-body{padding:16px 18px}
+    .cap-box{background:var(--surface2);border:1.5px solid var(--border2);border-radius:12px;padding:14px;margin-bottom:14px}
+    .cap-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);margin-bottom:8px}
+    .cap-steps{font-size:13px;color:var(--text-dim);line-height:1.9;margin-bottom:10px}
+    .cap-steps span{color:var(--amber);font-weight:600}
+    .cap-ta{width:100%;background:var(--surface3);border:1.5px solid var(--border2);color:var(--cream);padding:11px 13px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;resize:none;min-height:100px;line-height:1.55;-webkit-appearance:none}
+    .cap-ta:focus{border-color:var(--amber-dim)}
+    .cap-ta::placeholder{color:var(--text-muted)}
+    .ext-row{display:flex;gap:8px;margin-top:10px}
+
+    /* ── PHOTO CAPTURE ── */
+    .input-tabs{display:flex;gap:0;margin-bottom:14px;background:var(--surface2);border-radius:10px;padding:3px}
+    .input-tab{flex:1;padding:9px 6px;border:none;background:transparent;color:var(--text-dim);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;border-radius:8px;cursor:pointer;transition:all .18s;text-align:center}
+    .input-tab.active{background:var(--surface);color:var(--cream);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+    .input-pane{display:none}
+    .input-pane.active{display:block}
+    .photo-drop{border:2px dashed var(--border2);border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent}
+    .photo-drop:active,.photo-drop.drag{border-color:var(--amber-dim);background:var(--amber-glow)}
+    .photo-drop-icon{font-size:36px;margin-bottom:10px}
+    .photo-drop-txt{font-size:14px;color:var(--text-dim);line-height:1.6}
+    .photo-drop-txt strong{color:var(--amber)}
+    .photo-preview{width:100%;border-radius:10px;max-height:220px;object-fit:cover;margin-bottom:10px;display:none}
+    .photo-preview.show{display:block}
+    .cam-btn-row{display:flex;gap:8px;margin-top:10px}
+    .cam-btn{flex:1;padding:11px;font-size:14px;border-radius:9px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .18s}
+    .cam-btn:active{transform:scale(.96)}
+    .cam-photo{background:var(--amber);color:#0d0c0a}
+    .cam-lib{background:var(--surface3);color:var(--text-dim);border:1.5px solid var(--border2)}
+    .div-lbl{display:flex;align-items:center;gap:10px;margin:18px 0 14px}
+    .div-lbl::before,.div-lbl::after{content:'';flex:1;height:1px;background:var(--border2)}
+    .div-lbl span{font-size:11px;color:var(--text-muted);white-space:nowrap}
+    .fields-sec{display:none}
+    .fields-sec.vis{display:block}
+
+    /* ── RANDOM ── */
+    .rand-ov{position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+    .rand-ov.open{opacity:1;pointer-events:all}
+    .rand-card{background:var(--surface);border:1px solid var(--amber-dim);border-radius:20px;padding:36px 28px;text-align:center;width:320px;max-width:88vw;box-shadow:0 0 60px rgba(232,168,76,.14),0 30px 60px rgba(0,0,0,.5);animation:popIn .28s cubic-bezier(.34,1.56,.64,1)}
+    @keyframes popIn{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+    .rand-eye{font-size:11px;text-transform:uppercase;letter-spacing:.2em;color:var(--amber);margin-bottom:14px}
+    .rand-nm{font-family:'Playfair Display',serif;font-size:24px;color:var(--cream);margin-bottom:6px;line-height:1.3}
+    .rand-sub{font-size:14px;color:var(--text-dim);margin-bottom:24px}
+    .rand-btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+
+    /* ── TOAST ── */
+    .toast{position:fixed;bottom:calc(80px + var(--safe-b));left:50%;transform:translateX(-50%) translateY(60px);background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:10px;font-size:14px;z-index:300;transition:transform .28s cubic-bezier(.4,0,.2,1);pointer-events:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+    .toast.show{transform:translateX(-50%) translateY(0)}
+
+    /* ── DESKTOP ── */
+    @media(min-width:700px){
+      .fab-lst{display:none}
+      #mapScreen{flex-direction:row}
+      #map{flex:1}
+      .desktop-sb{width:300px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex!important;flex-direction:column;overflow:hidden;order:-1}
+      #addSheet,#detailSheet,#settingsSheet{left:auto;right:0;bottom:0;top:0;width:380px;border-radius:0;border-left:1px solid var(--border2);border-top:none;max-height:100vh;transform:translateX(100%)}
+      #addSheet.open,#detailSheet.open,#settingsSheet.open{transform:translateX(0)}
+      .sh-handle{display:none}
+      .fab-wrap{bottom:24px;right:24px}
+      .toast{bottom:24px}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ SETUP ══ -->
+<div id="setupScreen" class="screen active">
+  <div class="setup-card">
+    <div class="setup-logo">Reel<em>Bites</em></div>
+    <div class="setup-tag">IG 美食 Reel 地圖收藏</div>
+    <div class="tip-banner">
+      💡 <strong>只需免費 Google Key</strong> 即可使用全部功能<br>
+      <strong>不需要</strong> Anthropic Key（可選填作備用）
+    </div>
+    <div class="fg">
+      <label class="fl">🔵 Google Gemini Key <span class="fl-sub">免費 · 每日 250 次</span></label>
+      <input type="password" class="fi" id="s_gk" placeholder="AIzaSy..." autocomplete="off">
+      <div class="fhint"><a href="https://aistudio.google.com/apikey" target="_blank">免費取得（不需信用卡）→</a></div>
+    </div>
+    <div class="fg">
+      <label class="fl">🟠 Anthropic Key <span class="fl-sub">付費 · 選填</span></label>
+      <input type="password" class="fi" id="s_ak" placeholder="sk-ant-..." autocomplete="off">
+    </div>
+    <div class="sb" id="setupSb"></div>
+    <button class="btn btn-a btn-full" onclick="setupSave()">開始使用 →</button>
+    <div class="fhint" style="text-align:center;margin-top:12px">Key 僅儲存本機，不上傳至任何伺服器</div>
+  </div>
+</div>
+
+<!-- ══ MAP SCREEN ══ -->
+<div id="mapScreen" class="screen">
+  <div class="desktop-sb" id="deskSb" style="display:none">
+    <div class="sh-head">
+      <div class="sh-title" style="font-size:15px">我的餐廳 <span id="sbCount" style="color:var(--text-dim);font-family:'DM Sans',sans-serif;font-size:14px">0</span></div>
+      <button class="btn btn-sm btn-g" onclick="clearFilters()">清除篩選</button>
+    </div>
+    <div style="padding:10px 12px 6px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <input type="search" class="list-sb" id="deskSearch" placeholder="搜尋..." oninput="renderList()" style="padding:8px 12px 8px 36px;font-size:13px">
+    </div>
+    <div class="sh-body" id="deskList"></div>
+  </div>
+
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div class="topbar">
+      <div class="logo-sm">R<em>B</em></div>
+      <div class="topbar-filters">
+        <select class="fsel" id="fCity"    onchange="applyFilters()"><option value="">🌆 城市</option></select>
+        <select class="fsel" id="fReg"     onchange="applyFilters()"><option value="">📍 地區</option></select>
+        <select class="fsel" id="fCui"     onchange="applyFilters()"><option value="">🍽 料理</option></select>
+      </div>
+      <button class="btn-icon" onclick="openSettings()">⚙</button>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <div class="fab-wrap">
+    <button class="fab fab-lst" onclick="openListSh()" title="列表">☰</button>
+    <button class="fab fab-rnd" onclick="pickRandom()" title="隨機">🎲</button>
+    <button class="fab fab-add" onclick="openAddSh()"  title="新增">＋</button>
+  </div>
+</div>
+
+<!-- ══ OVERLAY ══ -->
+<div class="sheet-ov" id="shOv" onclick="closeAllSheets()"></div>
+
+<!-- LIST SHEET -->
+<div class="sheet" id="listSh">
+  <div class="sh-handle"></div>
+  <div class="sh-head">
+    <div class="sh-title">我的餐廳 <span id="listCnt" style="color:var(--text-dim);font-family:'DM Sans',sans-serif;font-size:14px"></span></div>
+    <button class="btn btn-sm btn-g" onclick="closeSheet('listSh')">關閉</button>
+  </div>
+  <div class="list-sb-wrap">
+    <input type="search" class="list-sb" id="listSearch" placeholder="搜尋餐廳名稱..." oninput="renderList()">
+  </div>
+  <div class="sh-body" id="listBody"></div>
+</div>
+
+<!-- DETAIL SHEET -->
+<div class="sheet" id="detSh">
+  <div class="sh-handle"></div>
+  <div class="sh-head">
+    <button class="btn btn-sm btn-g" onclick="closeSheet('detSh')">← 返回</button>
+    <button class="btn btn-sm btn-d" onclick="deleteRest()">刪除</button>
+  </div>
+  <div class="sh-body">
+    <div class="det-body">
+      <div class="det-name" id="d_nm"></div>
+      <div id="d_tag"></div>
+      <div class="det-sec">
+        <div class="det-lbl">📍 地址</div>
+        <div class="det-val" id="d_addr"></div>
+        <div style="font-size:13px;color:var(--text-dim);margin-top:3px" id="d_loc"></div>
+        <div style="font-size:12px;color:var(--terra);margin-top:5px;display:none" id="d_nc">⚠ 未能自動定位，地圖上不顯示標記</div>
+      </div>
+      <div class="det-sec" id="d_rs"><div class="det-lbl">🎬 Instagram Reel</div><a href="#" class="reel-lnk" id="d_rl" target="_blank" rel="noopener">🎥 在 Instagram 查看原 Reel</a></div>
+      <div class="det-sec" id="d_recs_sec"><div class="det-lbl">✨ Reel 推薦亮點</div><div id="d_recs"></div></div>
+      <div class="det-sec" id="d_ns"><div class="det-lbl">📝 個人筆記</div><div class="det-val" id="d_notes"></div></div>
+      <div class="det-sec"><div class="det-lbl">🗓 加入日期</div><div style="font-size:14px;color:var(--text-dim)" id="d_dt"></div></div>
+    </div>
+  </div>
+  <div class="det-foot">
+    <button class="btn btn-a" style="flex:1;padding:12px" onclick="viewGMaps()">🗺 Google Maps</button>
+    <button class="btn btn-g" style="padding:12px 16px" onclick="shareRest()">⬆ 分享</button>
+  </div>
+</div>
+
+<!-- ADD SHEET -->
+<div class="sheet" id="addSh">
+  <div class="sh-handle"></div>
+  <div class="sh-head">
+    <div class="sh-title">加入餐廳</div>
+    <button class="btn btn-sm btn-g" onclick="closeSheet('addSh')">✕</button>
+  </div>
+  <div class="sh-body">
+    <div class="add-body">
+
+      <!-- Input method tabs -->
+      <div class="input-tabs">
+        <button class="input-tab active" onclick="switchTab('photo')">📷 拍照 / 上傳圖片</button>
+        <button class="input-tab" onclick="switchTab('text')">📋 貼上文字</button>
+      </div>
+
+      <!-- PHOTO PANE -->
+      <div class="input-pane active" id="panePhoto">
+
+        <!-- Step 1: Pick photo -->
+        <div id="photoStep1">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);margin-bottom:10px">
+            步驟 ① 選擇圖片
+          </div>
+          <!-- Visible file input — most reliable on all mobile browsers -->
+          <label for="photoInput" style="display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--surface2);border:2px dashed var(--border2);border-radius:12px;padding:28px 16px;cursor:pointer;gap:10px;-webkit-tap-highlight-color:transparent">
+            <span style="font-size:40px">📷</span>
+            <span style="font-size:15px;color:var(--cream);font-weight:500">點這裡選擇圖片</span>
+            <span style="font-size:12px;color:var(--text-muted);text-align:center">截圖 · 相機 · 相簿<br>均可選擇</span>
+          </label>
+          <input type="file" id="photoInput" accept="image/*" style="position:absolute;width:1px;height:1px;opacity:0" onchange="handlePhotoFile(event)">
+        </div>
+
+        <!-- Step 2: Preview + Analyze (hidden until photo loaded) -->
+        <div id="photoStep2" style="display:none">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:10px">
+            ✓ 圖片已載入
+          </div>
+          <img id="photoPreview" style="width:100%;border-radius:10px;max-height:200px;object-fit:cover;margin-bottom:12px" alt="預覽">
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <button class="btn btn-a" style="flex:1;padding:13px;font-size:15px;font-weight:600" id="extBtnPhoto" onclick="doExtractPhoto()">
+              ✨ 分析圖片
+            </button>
+            <label for="photoInput" style="padding:13px 14px;background:var(--surface3);border:1.5px solid var(--border2);border-radius:9px;color:var(--text-dim);font-size:13px;cursor:pointer;display:flex;align-items:center">
+              重選
+            </label>
+          </div>
+          <div id="photoDebug" style="font-size:12px;color:var(--text-muted);text-align:center"></div>
+        </div>
+
+        <button class="btn btn-g" style="width:100%;padding:11px;margin-top:10px;font-size:13px" onclick="toggleFields()">手動填寫</button>
+      </div>
+
+      <!-- TEXT PANE -->
+      <div class="input-pane" id="paneText">
+        <div class="cap-steps" style="font-size:13px;color:var(--text-dim);line-height:1.9;margin-bottom:10px">
+          <span style="color:var(--amber);font-weight:600">①</span> IG 開啟 Reel &nbsp;
+          <span style="color:var(--amber);font-weight:600">②</span> 點「⋯」→「複製說明文字」&nbsp;
+          <span style="color:var(--amber);font-weight:600">③</span> 貼到這裡 ↓
+        </div>
+        <textarea class="cap-ta" id="capTxt" rows="4"
+          placeholder="貼上 Reel 的說明文字（含餐廳名稱、地址、hashtag）&#10;&#10;例：&#10;🍜 超好吃的拉麵推薦！&#10;📍 台北市大安區忠孝東路四段 1 號&#10;#台北美食 #拉麵"></textarea>
+        <div class="ext-row">
+          <button class="btn btn-a" style="flex:1;padding:11px;font-size:14px" id="extBtn" onclick="doExtract()">✨ AI 自動填寫</button>
+          <button class="btn btn-g" style="padding:11px 14px;font-size:13px" onclick="toggleFields()">手動填寫</button>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label class="fl">🔗 Reel 連結 <span class="fl-sub">選填，用於點擊跳回 IG</span></label>
+        <input type="url" class="fi" id="f_url" placeholder="https://www.instagram.com/reel/...">
+      </div>
+
+      <div class="sb" id="addSb"></div>
+
+      <div class="fields-sec" id="fieldsSec">
+        <div class="div-lbl"><span>餐廳資訊（可修改）</span></div>
+        <div class="fg"><label class="fl">餐廳名稱 *</label><input type="text" class="fi" id="f_nm" placeholder="餐廳名稱"></div>
+        <div class="fg"><label class="fl">地址 *</label><input type="text" class="fi" id="f_addr" placeholder="完整地址（越詳細越好）"></div>
+        <div class="frow">
+          <div class="fg"><label class="fl">城市</label><input type="text" class="fi" id="f_city" placeholder="台北市"></div>
+          <div class="fg"><label class="fl">地區</label><input type="text" class="fi" id="f_reg" placeholder="大安區"></div>
+        </div>
+        <div class="fg"><label class="fl">料理類型</label><input type="text" class="fi" id="f_cui" placeholder="日式拉麵、台式小吃..."></div>
+        <div class="fg"><label class="fl">推薦亮點 <span class="fl-sub">每行一項</span></label><textarea class="fta" id="f_recs" rows="3" placeholder="必點招牌菜&#10;環境很適合約會&#10;週末記得訂位"></textarea></div>
+        <div class="fg"><label class="fl">個人筆記</label><textarea class="fta" id="f_notes" rows="2" placeholder="私人備注..."></textarea></div>
+        <button class="btn btn-a btn-full" style="padding:14px;margin-top:4px" onclick="saveRest()">💾 儲存到地圖</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS SHEET -->
+<div class="sheet" id="cfgSh">
+  <div class="sh-handle"></div>
+  <div class="sh-head">
+    <div class="sh-title">設定</div>
+    <button class="btn btn-sm btn-g" onclick="closeSheet('cfgSh')">✕</button>
+  </div>
+  <div class="sh-body">
+    <div style="padding:18px">
+      <div class="fg">
+        <label class="fl">🔵 Google Gemini Key <span class="fl-sub">免費</span></label>
+        <input type="password" class="fi" id="cfg_gk" placeholder="AIzaSy..." autocomplete="off">
+        <div class="fhint"><a href="https://aistudio.google.com/apikey" target="_blank">取得免費 Key →</a></div>
+      </div>
+      <div class="fg">
+        <label class="fl">🟠 Anthropic Key <span class="fl-sub">付費，備用</span></label>
+        <input type="password" class="fi" id="cfg_ak" placeholder="sk-ant-..." autocomplete="off">
+      </div>
+      <div class="fg">
+        <label class="fl">🔗 遠端資料 URL <span class="fl-sub">由 Python 腳本自動更新</span></label>
+        <input type="url" class="fi" id="cfg_remote" placeholder="https://raw.githubusercontent.com/你的帳號/reelbites/main/restaurants.json" autocomplete="off">
+        <div class="fhint">填入後，每次開啟地圖會自動從 GitHub 同步最新餐廳資料</div>
+      </div>
+      <div class="sb" id="cfgSb"></div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-a" style="flex:1;padding:12px" onclick="cfgSave()">儲存設定</button>
+        <button class="btn btn-d" style="padding:12px 16px" onclick="clearAll()">清除資料</button>
+      </div>
+      <div class="fhint" style="margin-top:14px;line-height:1.7">優先使用 Google Gemini（免費），失敗才切換 Anthropic。<br>所有資料僅儲存於本機瀏覽器。</div>
+      <button class="btn btn-g" style="width:100%;padding:11px;margin-top:8px;font-size:13px" onclick="syncRemote()">🔄 立即同步遠端資料</button>
+      <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border)">
+        <div class="fg"><label class="fl" style="color:var(--text-dim)">📤 匯出備份</label><button class="btn btn-g btn-full" style="padding:12px;margin-top:4px" onclick="exportData()">下載 JSON</button></div>
+        <div class="fg"><label class="fl" style="color:var(--text-dim)">📥 匯入資料</label><input type="file" id="importFile" accept=".json" onchange="importData(event)" style="display:none"><button class="btn btn-g btn-full" style="padding:12px;margin-top:4px" onclick="document.getElementById('importFile').click()">選擇 JSON 檔案</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RANDOM -->
+<div class="rand-ov" id="randOv" onclick="if(event.target===this)closeRandom()">
+  <div class="rand-card" id="randCard">
+    <div class="rand-eye">🎲 今天就去這裡！</div>
+    <div class="rand-nm" id="rnd_nm">—</div>
+    <div class="rand-sub" id="rnd_sub"></div>
+    <div class="rand-btns">
+      <button class="btn btn-a btn-sm" onclick="goRandom()">查看詳情</button>
+      <button class="btn btn-t btn-sm" onclick="pickRandom()">再抽一次</button>
+      <button class="btn btn-g btn-sm" onclick="closeRandom()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let rests=[], map=null, markers={}, activeId=null, randPick=null, gKey='', aKey='';
+
+// ── BOOT ──
+window.addEventListener('DOMContentLoaded', async () => {
+  gKey = ls('rb_gk')||''; aKey = ls('rb_ak')||'';
+  try{ rests=JSON.parse(ls('rb_d')||'[]'); }catch(e){ rests=[]; }
+  // Also load from remote JSON (synced by Python script)
+  const remoteUrl = ls('rb_remote')||'';
+  if(remoteUrl){
+    try{
+      const r = await fetch(remoteUrl+'?t='+Date.now());
+      if(r.ok){
+        const remote = await r.json();
+        // Merge: remote wins, keep local-only items
+        const remoteIds = new Set(remote.map(x=>x.id));
+        const localOnly = rests.filter(x=>!remoteIds.has(x.id));
+        rests = [...remote, ...localOnly];
+        ls('rb_d', JSON.stringify(rests));
+      }
+    }catch(e){ console.log('Remote sync skipped:', e.message); }
+  }
+  if (gKey||aKey){ showScr('mapScreen'); initMap(); refresh(); }
+  else showScr('setupScreen');
+  if(window.innerWidth>=700) document.getElementById('deskSb').style.display='flex';
+  window.addEventListener('resize',()=>{
+    document.getElementById('deskSb').style.display=window.innerWidth>=700?'flex':'none';
+  });
+});
+
+function ls(k,v){ if(v===undefined)return localStorage.getItem(k); localStorage.setItem(k,v); }
+function save(){ ls('rb_d',JSON.stringify(rests)); }
+function showScr(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+
+// ── MAP ──
+function initMap(){
+  if(map) return;
+  map=L.map('map',{zoomControl:true}).setView([25.04,121.565],12);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',subdomains:'abcd',maxZoom:19}).addTo(map);
+}
+
+// ── SETUP ──
+function setupSave(){
+  const g=document.getElementById('s_gk').value.trim();
+  const a=document.getElementById('s_ak').value.trim();
+  const ss=document.getElementById('setupSb');
+  if(!g&&!a){showSb(ss,'error','請至少填寫一個 API Key');return;}
+  if(g&&!g.startsWith('AIza')){showSb(ss,'error','Google Key 格式錯誤，應以 AIza 開頭');return;}
+  if(a&&!a.startsWith('sk-ant-')){showSb(ss,'error','Anthropic Key 格式錯誤，應以 sk-ant- 開頭');return;}
+  gKey=g; aKey=a;
+  if(g)ls('rb_gk',g); if(a)ls('rb_ak',a);
+  showScr('mapScreen'); initMap(); refresh();
+  toast('✓ 已啟動！');
+}
+
+// ── SETTINGS ──
+function openSettings(){
+  document.getElementById('cfg_gk').value=gKey;
+  document.getElementById('cfg_ak').value=aKey;
+  document.getElementById('cfg_remote').value=ls('rb_remote')||'';
+  document.getElementById('cfgSb').style.display='none';
+  openSheet('cfgSh');
+}
+function cfgSave(){
+  const g=document.getElementById('cfg_gk').value.trim();
+  const a=document.getElementById('cfg_ak').value.trim();
+  const remote=document.getElementById('cfg_remote').value.trim();
+  if(!g&&!a){showSb(document.getElementById('cfgSb'),'error','請至少保留一個 Key');return;}
+  gKey=g; aKey=a;
+  if(g)ls('rb_gk',g); else localStorage.removeItem('rb_gk');
+  if(a)ls('rb_ak',a); else localStorage.removeItem('rb_ak');
+  if(remote)ls('rb_remote',remote); else localStorage.removeItem('rb_remote');
+  closeSheet('cfgSh'); toast('✓ 設定已儲存');
+}
+function clearAll(){
+  if(!confirm('確定清除所有餐廳資料？'))return;
+  rests=[]; save(); closeSheet('cfgSh'); refresh(); toast('資料已清除');
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(rests,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='reelbites-backup.json'; a.click();
+}
+function importData(e){
+  const file=e.target.files[0]; if(!file)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      if(!Array.isArray(d))throw new Error('格式錯誤');
+      rests=[...rests,...d.filter(x=>x.id&&x.name)];
+      save(); refresh(); toast(`✓ 匯入 ${d.length} 筆`);
+    }catch(e){toast('匯入失敗：'+e.message);}
+  };
+  r.readAsText(file);
+}
+
+// ── REFRESH ──
+function refresh(){ buildFilters(); applyFilters(); }
+
+function buildFilters(){
+  const fc=document.getElementById('fCity'), fr=document.getElementById('fReg'), fcu=document.getElementById('fCui');
+  const cv=fc.value, rv=fr.value, cuv=fcu.value;
+  const cities=[...new Set(rests.map(r=>r.city).filter(Boolean))].sort();
+  const regs  =[...new Set(rests.map(r=>r.region).filter(Boolean))].sort();
+  const cuis  =[...new Set(rests.map(r=>r.cuisine).filter(Boolean))].sort();
+  fc.innerHTML ='<option value="">🌆 城市</option>'+cities.map(c=>`<option>${esc(c)}</option>`).join('');
+  fr.innerHTML ='<option value="">📍 地區</option>'+regs.map(c=>`<option>${esc(c)}</option>`).join('');
+  fcu.innerHTML='<option value="">🍽 料理</option>'+cuis.map(c=>`<option>${esc(c)}</option>`).join('');
+  if(cv)fc.value=cv; if(rv)fr.value=rv; if(cuv)fcu.value=cuv;
+}
+
+function applyFilters(){
+  const city=document.getElementById('fCity').value;
+  const reg =document.getElementById('fReg').value;
+  const cui =document.getElementById('fCui').value;
+  const f=rests.filter(r=>{
+    if(city&&r.city!==city)return false;
+    if(reg&&r.region!==reg)return false;
+    if(cui&&r.cuisine!==cui)return false;
+    return true;
+  });
+  renderMarkers(f); renderList(null,f);
+}
+
+function clearFilters(){
+  document.getElementById('fCity').value='';
+  document.getElementById('fReg').value='';
+  document.getElementById('fCui').value='';
+  applyFilters();
+}
+
+// ── LIST ──
+function renderList(_, filtered){
+  const qMob  = document.getElementById('listSearch')?.value||'';
+  const qDesk = document.getElementById('deskSearch')?.value||'';
+  const pool  = filtered ?? getPool();
+  const makeHtml = (q) => {
+    const items = q ? pool.filter(r=>r.name.toLowerCase().includes(q.toLowerCase())) : pool;
+    if(!items.length) return `<div class="empty-msg"><div class="empty-emoji">${rests.length===0?'🍜':'🔍'}</div>${rests.length===0?'尚未儲存任何餐廳<br>點擊右下角 ＋ 開始收藏':'沒有符合條件的餐廳'}</div>`;
+    return items.map(r=>`<div class="r-item" onclick="selectRest('${r.id}')"><div class="r-dot"></div><div class="r-info"><div class="r-name">${esc(r.name)}</div><div class="r-meta">📍 ${esc([r.region,r.city].filter(Boolean).join('・')||r.address||'未知')}&nbsp;${r.cuisine?`<span class="r-tag">${esc(r.cuisine)}</span>`:''}</div></div><div class="r-arr">›</div></div>`).join('');
+  };
+  document.getElementById('listBody').innerHTML  = makeHtml(qMob);
+  document.getElementById('deskList').innerHTML  = makeHtml(qDesk);
+  const cnt = pool.length + ' 間';
+  document.getElementById('listCnt').textContent = cnt;
+  document.getElementById('sbCount').textContent = cnt;
+}
+
+// ── MARKERS ──
+function renderMarkers(list){
+  if(!map)return;
+  Object.values(markers).forEach(m=>map.removeLayer(m)); markers={};
+  list.forEach(r=>{
+    if(!r.lat||!r.lng)return;
+    const ia=activeId===r.id;
+    const icon=L.divIcon({html:`<div style="width:26px;height:26px;background:${ia?'#e8a84c':'#c4614a'};border:2.5px solid ${ia?'#fff':'#0d0c0a'};border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 3px 10px rgba(0,0,0,.6)${ia?',0 0 0 4px rgba(232,168,76,.3)':''}"></div>`,className:'',iconSize:[26,26],iconAnchor:[13,26],popupAnchor:[1,-30]});
+    const m=L.marker([r.lat,r.lng],{icon}).addTo(map)
+      .bindPopup(`<div class="pp-name">${esc(r.name)}</div><div class="pp-meta">${esc([r.cuisine,r.region,r.city].filter(Boolean).join(' · '))}</div>`)
+      .on('click',()=>selectRest(r.id));
+    markers[r.id]=m;
+  });
+}
+
+// ── SELECT ──
+function selectRest(id){
+  activeId=id;
+  const r=rests.find(x=>x.id===id); if(!r)return;
+  document.getElementById('d_nm').textContent=r.name;
+  document.getElementById('d_tag').innerHTML=r.cuisine?`<div class="det-tag">${esc(r.cuisine)}</div>`:'';
+  document.getElementById('d_addr').textContent=r.address||'未提供';
+  document.getElementById('d_loc').textContent=[r.region,r.city].filter(Boolean).join('・');
+  document.getElementById('d_nc').style.display=(!r.lat||!r.lng)?'block':'none';
+  const rs=document.getElementById('d_rs');
+  if(r.url){rs.style.display='block';document.getElementById('d_rl').href=r.url;}else rs.style.display='none';
+  const rc=document.getElementById('d_recs_sec');
+  if(r.recs?.length){rc.style.display='block';document.getElementById('d_recs').innerHTML=r.recs.map(x=>`<div class="rec-item">🌟 ${esc(x)}</div>`).join('');}else rc.style.display='none';
+  const ns=document.getElementById('d_ns');
+  if(r.notes){ns.style.display='block';document.getElementById('d_notes').textContent=r.notes;}else ns.style.display='none';
+  document.getElementById('d_dt').textContent=r.date||'';
+  closeSheet('listSh'); setTimeout(()=>openSheet('detSh'),50);
+  applyFilters();
+  if(r.lat&&r.lng&&map){map.flyTo([r.lat,r.lng],16,{duration:1.2});setTimeout(()=>markers[r.id]?.openPopup(),1300);}
+}
+
+function viewGMaps(){
+  const r=rests.find(x=>x.id===activeId); if(!r)return;
+  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address||r.name)}`,'_blank');
+}
+function shareRest(){
+  const r=rests.find(x=>x.id===activeId); if(!r)return;
+  const txt=`${r.name}\n📍 ${r.address}\n${r.url||''}`;
+  if(navigator.share)navigator.share({title:r.name,text:txt});
+  else{navigator.clipboard?.writeText(txt);toast('已複製到剪貼板');}
+}
+function deleteRest(){
+  if(!confirm('確定刪除？'))return;
+  rests=rests.filter(r=>r.id!==activeId); save(); activeId=null;
+  closeSheet('detSh'); refresh(); toast('已刪除');
+}
+
+// ── ADD ──
+let currentPhotoB64=null, currentPhotoMime='image/jpeg';
+
+function openAddSh(){ resetForm(); openSheet('addSh'); }
+function resetForm(){
+  ['capTxt','f_url','f_nm','f_addr','f_city','f_reg','f_cui','f_recs','f_notes'].forEach(id=>{document.getElementById(id).value='';});
+  document.getElementById('fieldsSec').classList.remove('vis');
+  document.getElementById('addSb').style.display='none';
+  currentPhotoB64=null; currentPhotoMime='image/jpeg';
+  const prev=document.getElementById('photoPreview');
+  if(prev) prev.src='';
+  const s1=document.getElementById('photoStep1');
+  const s2=document.getElementById('photoStep2');
+  if(s1) s1.style.display='block';
+  if(s2) s2.style.display='none';
+  const inp=document.getElementById('photoInput');
+  if(inp) inp.value='';
+  switchTab('photo');
+}
+
+// ── TAB SWITCHING ──
+function switchTab(tab){
+  document.querySelectorAll('.input-tab').forEach((t,i)=>{
+    const tabs=['photo','text'];
+    t.classList.toggle('active', tabs[i]===tab);
+  });
+  document.getElementById('panePhoto').classList.toggle('active', tab==='photo');
+  document.getElementById('paneText').classList.toggle('active',  tab==='text');
+}
+
+// ── PHOTO CAPTURE ──
+function handlePhotoFile(e){
+  const file = e.target.files[0];
+  if(!file){ return; }
+
+  currentPhotoMime = file.type || 'image/jpeg';
+
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    const dataUrl = ev.target.result;
+    const b64 = dataUrl.split(',')[1];
+    if(!b64){ toast('圖片讀取失敗，請重試'); return; }
+
+    currentPhotoB64 = b64;
+
+    // Show preview
+    const prev = document.getElementById('photoPreview');
+    prev.src = dataUrl;
+
+    // Show step 2, hide step 1
+    document.getElementById('photoStep1').style.display = 'none';
+    document.getElementById('photoStep2').style.display = 'block';
+
+    const kb = Math.round(b64.length / 1024);
+    document.getElementById('photoDebug').textContent = '圖片大小：' + kb + 'KB（壓縮前）';
+    toast('✓ 圖片載入成功！點「✨ 分析圖片」');
+
+    // Scroll analyze button into view
+    setTimeout(()=>{
+      document.getElementById('photoStep2').scrollIntoView({behavior:'smooth',block:'start'});
+    }, 200);
+  };
+  reader.onerror = function(){ toast('讀取圖片失敗，請重試'); };
+  reader.readAsDataURL(file);
+}
+
+// ── RESIZE image before sending (fixes large phone photos) ──
+// ── Compress image to under 80KB to reliably work on all mobile browsers ──
+async function resizeImageB64(b64, mime){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      const TARGET = 80000; // 80KB base64 — very safe for mobile fetch
+      const canvas=document.createElement('canvas');
+      const ctx=canvas.getContext('2d');
+      // Try from 512px down to 200px at low quality until small enough
+      const attempts=[
+        {px:512,q:0.6},{px:400,q:0.5},{px:300,q:0.4},{px:200,q:0.35},{px:150,q:0.3}
+      ];
+      let out=null;
+      for(const {px,q} of attempts){
+        const scale=Math.min(1, px/Math.max(img.width,img.height));
+        const w=Math.round(img.width*scale), h=Math.round(img.height*scale);
+        canvas.width=w; canvas.height=h;
+        ctx.clearRect(0,0,w,h);
+        ctx.drawImage(img,0,0,w,h);
+        out=canvas.toDataURL('image/jpeg',q).split(',')[1];
+        if(out.length<=TARGET) break;
+      }
+      resolve({b64:out, mime:'image/jpeg'});
+    };
+    img.onerror=()=>resolve({b64, mime:'image/jpeg'}); // fallback: send original
+    img.src=`data:${mime};base64,${b64}`;
+  });
+}
+
+// ── fetchWithTimeout: prevents silent hang on slow mobile connections ──
+async function fetchWithTimeout(url, opts, ms=25000){
+  const ctrl=new AbortController();
+  const tid=setTimeout(()=>ctrl.abort(), ms);
+  try{
+    const r=await fetch(url,{...opts,signal:ctrl.signal});
+    clearTimeout(tid);
+    return r;
+  }catch(e){
+    clearTimeout(tid);
+    if(e.name==='AbortError') throw new Error('請求逾時（網路太慢），請重試');
+    throw e;
+  }
+}
+
+async function doExtractPhoto(){
+  if(!currentPhotoB64){toast('請先拍照或選擇圖片');return;}
+  if(!gKey&&!aKey){toast('請先設定 API Key');return;}
+
+  const btn=document.getElementById('extBtnPhoto');
+  btn.disabled=true; btn.textContent='⏳ 壓縮中...';
+  const ss=document.getElementById('addSb');
+  showSb(ss,'loading','<span class="spin"></span>壓縮圖片中...');
+  ss.scrollIntoView({behavior:'smooth',block:'center'});
+
+  const {b64, mime} = await resizeImageB64(currentPhotoB64, currentPhotoMime);
+  const kb = Math.round(b64.length/1024);
+  console.log(`Compressed image: ${kb}KB`);
+
+  showSb(ss,'loading',`<span class="spin"></span>圖片已壓縮至 ${kb}KB，分析中...`);
+  ss.scrollIntoView({behavior:'smooth',block:'center'});
+  btn.textContent='⏳ 分析中...';
+
+  const imgPrompt=`請仔細分析這張圖片，找出圖中提到的餐廳資訊。圖片可能是 Instagram Reel 截圖、餐廳菜單、招牌或美食貼文。
+只回傳純 JSON，不得有任何其他文字：
+{"name":"餐廳名稱","address":"完整地址","city":"城市（繁體中文）","region":"行政區（繁體中文）","cuisine":"料理類型（繁體中文）","recommendations":["推薦菜色或亮點1","亮點2","亮點3"],"found":true}
+若找不到餐廳資訊回傳：{"found":false,"name":"","address":"","city":"","region":"","cuisine":"","recommendations":[]}`;
+
+  let result=null, lastErr='';
+
+  // ── Google Gemini Vision ──
+  if(gKey){
+    showSb(ss,'loading',`<span class="spin"></span>🔵 Gemini 分析中（${kb}KB）...`);
+    try{
+      const res=await fetchWithTimeout(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${gKey}`,
+        {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            contents:[{parts:[
+              {inline_data:{mime_type:mime,data:b64}},
+              {text:imgPrompt}
+            ]}],
+            generationConfig:{temperature:0.1}
+          })
+        }
+      );
+      const d=await res.json();
+      if(!res.ok)throw new Error(d.error?.message||`HTTP ${res.status}`);
+      const txt=(d.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
+      const clean=txt.replace(/```json|```/gi,'').trim();
+      const m=clean.match(/\{[\s\S]*\}/);
+      if(m) result=JSON.parse(m[0]);
+      else throw new Error('格式錯誤: '+txt.slice(0,80));
+    }catch(e){
+      lastErr='🔵 Gemini: '+e.message;
+      console.warn('Gemini photo err:',e.message);
+      showSb(ss,'loading','<span class="spin"></span>Gemini 失敗，嘗試備用 AI...');
+    }
+  }
+
+  // ── Anthropic Claude Vision fallback ──
+  if(!result&&aKey){
+    showSb(ss,'loading',`<span class="spin"></span>🟠 Claude 分析中（${kb}KB）...`);
+    try{
+      const res=await fetchWithTimeout(
+        'https://api.anthropic.com/v1/messages',
+        {
+          method:'POST',
+          headers:{'Content-Type':'application/json','x-api-key':aKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+          body:JSON.stringify({
+            model:'claude-haiku-4-5-20251001', max_tokens:700,
+            messages:[{role:'user',content:[
+              {type:'image',source:{type:'base64',media_type:mime,data:b64}},
+              {type:'text',text:imgPrompt}
+            ]}]
+          })
+        }
+      );
+      const d=await res.json();
+      if(!res.ok)throw new Error(d.error?.message||`HTTP ${res.status}`);
+      const txt=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+      const clean=txt.replace(/```json|```/gi,'').trim();
+      const m=clean.match(/\{[\s\S]*\}/);
+      if(m) result=JSON.parse(m[0]);
+      else throw new Error('格式錯誤: '+txt.slice(0,80));
+    }catch(e){
+      lastErr+=(lastErr?' | ':'')+'🟠 Claude: '+e.message;
+      console.warn('Claude photo err:',e.message);
+    }
+  }
+
+  btn.disabled=false; btn.textContent='✨ 分析圖片';
+
+  if(!result){
+    showSb(ss,'error',`❌ 分析失敗（圖片 ${kb}KB）<br>${lastErr}<br><br>💡 請試試「📋 貼上文字」標籤改用截圖說明文字`);
+    ss.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  if(!result.found||!result.name){
+    showSb(ss,'error','⚠ 圖片中未找到餐廳資訊。請確保圖片包含餐廳名稱或地址文字。');
+    ss.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+
+  document.getElementById('f_nm').value   =result.name||'';
+  document.getElementById('f_addr').value =result.address||'';
+  document.getElementById('f_city').value =result.city||'';
+  document.getElementById('f_reg').value  =result.region||'';
+  document.getElementById('f_cui').value  =result.cuisine||'';
+  document.getElementById('f_recs').value =(result.recommendations||[]).join('\n');
+  document.getElementById('fieldsSec').classList.add('vis');
+  showSb(ss,'success','✓ 圖片分析成功！請確認資料後儲存。');
+  toast('✓ 分析成功！');
+  setTimeout(()=>document.getElementById('f_nm').scrollIntoView({behavior:'smooth',block:'start'}),150);
+}
+function toggleFields(){
+  const fs=document.getElementById('fieldsSec'); fs.classList.toggle('vis');
+  if(fs.classList.contains('vis'))setTimeout(()=>fs.scrollIntoView({behavior:'smooth',block:'start'}),100);
+}
+
+// ── EXTRACT — Caption-based, NO web search tool, NO CORS issues ──
+async function doExtract(){
+  const cap=document.getElementById('capTxt').value.trim();
+  const url=document.getElementById('f_url').value.trim();
+  if(!cap&&!url){toast('請先貼上 Reel 說明文字');return;}
+  if(!gKey&&!aKey){toast('請先設定 API Key');return;}
+
+  const btn=document.getElementById('extBtn');
+  btn.disabled=true; btn.textContent='⏳ 分析中...';
+
+  const input=cap||(url?`Instagram Reel URL: ${url}`:'');
+  const prompt=`從以下文字中提取餐廳資訊：\n\n---\n${input}\n---\n\n只回傳純 JSON，不得有任何其他文字或 markdown：\n{"name":"餐廳名稱","address":"完整地址","city":"城市（繁體中文）","region":"行政區（繁體中文）","cuisine":"料理類型（繁體中文）","recommendations":["亮點1","亮點2","亮點3"],"found":true}\n若找不到餐廳，回傳：{"found":false,"name":"","address":"","city":"","region":"","cuisine":"","recommendations":[]}`;
+
+  const ss=document.getElementById('addSb');
+  let result=null, lastErr='';
+
+  // Google Gemini — simple text request, NO tools, NO grounding = NO CORS
+  if(gKey){
+    showSb(ss,'loading','<span class="spin"></span>🔵 Google Gemini 分析中...');
+    try{
+      const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${gKey}`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          contents:[{parts:[{text:prompt}]}],
+          generationConfig:{temperature:0.1,responseMimeType:'application/json'}
+        })
+      });
+      const d=await res.json();
+      if(!res.ok)throw new Error(d.error?.message||`HTTP ${res.status}`);
+      const txt=(d.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('').trim();
+      const m=txt.match(/\{[\s\S]*\}/);
+      if(m)result=JSON.parse(m[0]);
+    }catch(e){lastErr='🔵 Gemini: '+e.message; console.warn(e);}
+  }
+
+  // Anthropic fallback — text only, no web search tool
+  if(!result&&aKey){
+    showSb(ss,'loading','<span class="spin"></span>🟠 Anthropic 分析中...');
+    try{
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':aKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:600,messages:[{role:'user',content:prompt}]})
+      });
+      const d=await res.json();
+      if(!res.ok)throw new Error(d.error?.message||`HTTP ${res.status}`);
+      const txt=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+      const m=txt.match(/\{[\s\S]*\}/);
+      if(m)result=JSON.parse(m[0]);
+    }catch(e){lastErr+=(lastErr?'\n':'')+'🟠 Anthropic: '+e.message; console.warn(e);}
+  }
+
+  btn.disabled=false; btn.textContent='✨ AI 自動填寫';
+
+  if(!result){showSb(ss,'error','分析失敗：'+lastErr);return;}
+  if(!result.found||!result.name){showSb(ss,'error','找不到餐廳資訊。請確認說明文字含有餐廳名稱，或點「手動填寫」。');return;}
+
+  document.getElementById('f_nm').value   =result.name||'';
+  document.getElementById('f_addr').value =result.address||'';
+  document.getElementById('f_city').value =result.city||'';
+  document.getElementById('f_reg').value  =result.region||'';
+  document.getElementById('f_cui').value  =result.cuisine||'';
+  document.getElementById('f_recs').value =(result.recommendations||[]).join('\n');
+  document.getElementById('fieldsSec').classList.add('vis');
+  showSb(ss,'success','✓ 成功提取！請確認資料後點「儲存到地圖」。');
+  setTimeout(()=>document.getElementById('fieldsSec').scrollIntoView({behavior:'smooth'}),150);
+}
+
+// ── GEOCODE ──
+async function geocode(addr){
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(addr)}&format=json&limit=1`,{headers:{'Accept-Language':'zh-TW,zh;q=0.9,en;q=0.8'}});
+    const d=await r.json();
+    if(d.length)return{lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)};
+  }catch(e){}
+  return null;
+}
+
+// ── SAVE ──
+async function saveRest(){
+  const name=document.getElementById('f_nm').value.trim();
+  const addr=document.getElementById('f_addr').value.trim();
+  if(!name){toast('請填寫餐廳名稱');return;}
+  if(!addr){toast('請填寫地址');return;}
+  const sb=document.querySelector('[onclick="saveRest()"]');
+  sb.disabled=true; sb.textContent='⏳ 定位中...';
+  const coords=await geocode(addr);
+  const rec={
+    id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),
+    name,address:addr,
+    city:document.getElementById('f_city').value.trim(),
+    region:document.getElementById('f_reg').value.trim(),
+    cuisine:document.getElementById('f_cui').value.trim(),
+    recs:document.getElementById('f_recs').value.split('\n').map(s=>s.trim()).filter(Boolean),
+    notes:document.getElementById('f_notes').value.trim(),
+    url:document.getElementById('f_url').value.trim(),
+    lat:coords?.lat||null, lng:coords?.lng||null,
+    date:new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'})
+  };
+  rests.push(rec); save();
+  closeSheet('addSh'); refresh();
+  toast(coords?'✓ 已加入地圖！':'✓ 已儲存（未能定位）');
+  if(coords)setTimeout(()=>selectRest(rec.id),400);
+  sb.disabled=false; sb.textContent='💾 儲存到地圖';
+}
+
+// ── RANDOM ──
+function getPool(){
+  const city=document.getElementById('fCity').value, reg=document.getElementById('fReg').value, cui=document.getElementById('fCui').value;
+  if(!city&&!reg&&!cui)return[...rests];
+  return rests.filter(r=>{
+    if(city&&r.city!==city)return false;
+    if(reg&&r.region!==reg)return false;
+    if(cui&&r.cuisine!==cui)return false;
+    return true;
+  });
+}
+function pickRandom(){
+  const pool=getPool(); if(!pool.length){toast('沒有可選的餐廳');return;}
+  const prev=randPick?.id; let pick;
+  if(pool.length===1)pick=pool[0];
+  else{do{pick=pool[Math.floor(Math.random()*pool.length)];}while(pick.id===prev);}
+  randPick=pick;
+  const c=document.getElementById('randCard'); c.style.animation='none'; void c.offsetWidth; c.style.animation='';
+  document.getElementById('rnd_nm').textContent=pick.name;
+  document.getElementById('rnd_sub').textContent=[pick.cuisine,pick.region,pick.city].filter(Boolean).join(' · ')||pick.address||'';
+  document.getElementById('randOv').classList.add('open');
+}
+function closeRandom(){document.getElementById('randOv').classList.remove('open');}
+function goRandom(){closeRandom();if(randPick)selectRest(randPick.id);}
+
+// ── SHEETS ──
+function openSheet(id){
+  document.getElementById(id).classList.add('open');
+  document.getElementById('shOv').classList.add('dim');
+}
+function closeSheet(id){
+  document.getElementById(id).classList.remove('open');
+  const open=['listSh','detSh','addSh','cfgSh'].some(s=>s!==id&&document.getElementById(s).classList.contains('open'));
+  if(!open)document.getElementById('shOv').classList.remove('dim');
+}
+function closeAllSheets(){
+  ['listSh','detSh','addSh','cfgSh'].forEach(id=>document.getElementById(id).classList.remove('open'));
+  document.getElementById('shOv').classList.remove('dim');
+}
+function openListSh(){renderList();openSheet('listSh');}
+
+// ── REMOTE SYNC ──
+async function syncRemote(){
+  const remoteUrl = ls('rb_remote')||'';
+  if(!remoteUrl){ toast('請先在設定中填入遠端資料 URL'); return; }
+  toast('同步中...');
+  try{
+    const r = await fetch(remoteUrl+'?t='+Date.now());
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const remote = await r.json();
+    const remoteIds = new Set(remote.map(x=>x.id));
+    const localOnly = rests.filter(x=>!remoteIds.has(x.id));
+    rests = [...remote, ...localOnly];
+    ls('rb_d', JSON.stringify(rests));
+    refresh();
+    toast('✓ 已同步 '+remote.length+' 間餐廳');
+  }catch(e){ toast('同步失敗：'+e.message); }
+}
+
+// ── UTILS ──
+function showSb(el,type,msg){el.className='sb '+type;el.innerHTML=msg;}
+function toast(msg,dur=2800){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),dur);
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>
