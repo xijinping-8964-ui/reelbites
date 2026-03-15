@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ReelQueue">
+  <meta name="application-name" content="ReelQueue">
+  <meta name="theme-color" content="#0d0c0a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>ReelQueue</title>
+  <link rel="manifest" href="manifest.json">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0d0c0a;--surface:#161310;--surface2:#1e1a16;--surface3:#27231e;
+      --amber:#e8a84c;--amber-dim:#9e6f28;--amber-glow:rgba(232,168,76,.13);
+      --terra:#c4614a;--terra-soft:rgba(196,97,74,.15);
+      --green:#5db88a;--green-soft:rgba(93,184,138,.12);
+      --cream:#f0e6d3;--text:#d8caba;--text-dim:#7a6e60;--text-muted:#443d35;
+      --border:#252118;--border2:#302a22;
+      --safe-t:env(safe-area-inset-top,0px);
+      --safe-b:env(safe-area-inset-bottom,0px);
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+    body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;
+      display:flex;flex-direction:column;padding-top:var(--safe-t)}
+
+    /* ── NAV BAR ── */
+    .navbar{
+      background:var(--surface);border-bottom:1px solid var(--border2);
+      padding:0 16px;height:56px;display:flex;align-items:center;
+      justify-content:space-between;flex-shrink:0;
+    }
+    .nav-logo{font-size:20px;font-weight:700;color:var(--amber)}
+    .nav-logo span{color:var(--terra)}
+    .nav-count{
+      background:var(--terra);color:#fff;font-size:12px;font-weight:700;
+      padding:3px 9px;border-radius:20px;display:none;
+    }
+    .nav-count.show{display:block}
+
+    /* ── TAB BAR ── */
+    .tabs{
+      display:flex;background:var(--surface);border-bottom:1px solid var(--border2);
+      flex-shrink:0;
+    }
+    .tab{
+      flex:1;padding:12px 0;text-align:center;font-size:13px;font-weight:500;
+      color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;
+      transition:all .18s;
+    }
+    .tab.active{color:var(--amber);border-bottom-color:var(--amber)}
+
+    /* ── PAGES ── */
+    .page{display:none;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+      overscroll-behavior:contain;padding-bottom:calc(20px + var(--safe-b))}
+    .page.active{display:block}
+    .page::-webkit-scrollbar{display:none}
+
+    /* ── ADD PAGE ── */
+    .add-hero{
+      background:linear-gradient(160deg,#1a1510 0%,var(--surface) 100%);
+      padding:28px 20px 24px;text-align:center;
+      border-bottom:1px solid var(--border2);
+    }
+    .add-hero-icon{font-size:44px;margin-bottom:10px}
+    .add-hero-title{font-size:22px;font-weight:700;color:var(--cream);margin-bottom:6px}
+    .add-hero-sub{font-size:14px;color:var(--text-dim);line-height:1.6}
+
+    .share-tip{
+      margin:16px;background:var(--amber-glow);border:1px solid var(--amber-dim);
+      border-radius:12px;padding:14px 16px;
+    }
+    .share-tip-title{font-size:12px;font-weight:600;text-transform:uppercase;
+      letter-spacing:.08em;color:var(--amber);margin-bottom:8px}
+    .share-tip-steps{font-size:13px;color:var(--text-dim);line-height:2}
+    .share-tip-steps b{color:var(--cream)}
+
+    .manual-section{margin:0 16px 16px}
+    .section-label{font-size:11px;font-weight:600;text-transform:uppercase;
+      letter-spacing:.1em;color:var(--text-muted);margin-bottom:10px;
+      display:flex;align-items:center;gap:8px}
+    .section-label::after{content:'';flex:1;height:1px;background:var(--border2)}
+    .input-row{display:flex;gap:8px}
+    .fi{
+      flex:1;background:var(--surface2);border:1.5px solid var(--border2);
+      color:var(--cream);padding:13px 14px;border-radius:10px;
+      font-family:'DM Sans',sans-serif;font-size:15px;outline:none;
+      -webkit-appearance:none;transition:border-color .18s;
+    }
+    .fi:focus{border-color:var(--amber-dim)}
+    .fi::placeholder{color:var(--text-muted)}
+    .btn{
+      border:none;cursor:pointer;font-family:'DM Sans',sans-serif;
+      font-weight:600;border-radius:10px;transition:all .18s;
+      -webkit-appearance:none;display:flex;align-items:center;
+      justify-content:center;gap:6px;
+    }
+    .btn:active{transform:scale(.95)}
+    .btn-add{background:var(--amber);color:#0d0c0a;padding:13px 18px;font-size:15px;white-space:nowrap}
+    .btn-full{width:100%;padding:14px;font-size:15px;margin-top:10px;background:var(--amber);color:#0d0c0a}
+    .btn-ghost{background:var(--surface2);color:var(--text-dim);border:1.5px solid var(--border2);padding:11px 16px;font-size:14px}
+    .btn-danger-sm{background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:4px 8px;line-height:1}
+    .btn-danger-sm:active{color:var(--terra)}
+
+    .sb{display:none;padding:12px 14px;border-radius:9px;font-size:13px;
+      line-height:1.55;margin-top:10px}
+    .sb.ok{display:block;background:var(--green-soft);border:1px solid rgba(93,184,138,.4);color:var(--green)}
+    .sb.err{display:block;background:var(--terra-soft);border:1px solid rgba(196,97,74,.4);color:#e07060}
+    .sb.loading{display:block;background:var(--amber-glow);border:1px solid var(--amber-dim);color:var(--amber)}
+    .spin{display:inline-block;width:12px;height:12px;border:2px solid var(--amber-dim);
+      border-top-color:var(--amber);border-radius:50%;animation:spin .7s linear infinite;
+      vertical-align:middle;margin-right:5px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── QUEUE PAGE ── */
+    .queue-header{
+      padding:16px 16px 10px;display:flex;align-items:center;
+      justify-content:space-between;
+    }
+    .queue-title{font-size:16px;font-weight:600;color:var(--cream)}
+    .queue-subtitle{font-size:13px;color:var(--text-dim);margin-top:2px}
+    .refresh-btn{
+      background:var(--surface2);border:1.5px solid var(--border2);
+      color:var(--text-dim);width:36px;height:36px;border-radius:9px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:16px;cursor:pointer;border:none;
+    }
+    .refresh-btn:active{background:var(--surface3)}
+
+    .q-item{
+      display:flex;align-items:center;gap:12px;
+      padding:14px 16px;border-bottom:1px solid var(--border);
+      cursor:default;
+    }
+    .q-num{
+      width:26px;height:26px;background:var(--amber-glow);border:1px solid var(--amber-dim);
+      border-radius:50%;display:flex;align-items:center;justify-content:center;
+      font-size:12px;font-weight:700;color:var(--amber);flex-shrink:0;
+    }
+    .q-info{flex:1;min-width:0}
+    .q-url{font-size:13px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .q-date{font-size:11px;color:var(--text-muted);margin-top:2px}
+    .empty-state{padding:60px 20px;text-align:center}
+    .empty-icon{font-size:48px;margin-bottom:14px}
+    .empty-title{font-size:16px;font-weight:600;color:var(--text-dim);margin-bottom:8px}
+    .empty-sub{font-size:13px;color:var(--text-muted);line-height:1.7}
+
+    .process-banner{
+      margin:16px;background:var(--surface2);border:1px solid var(--border2);
+      border-radius:12px;padding:16px;
+    }
+    .process-banner-title{font-size:14px;font-weight:600;color:var(--cream);margin-bottom:6px}
+    .process-banner-sub{font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:12px}
+    .code-block{
+      background:var(--surface3);border-radius:8px;padding:10px 12px;
+      font-family:monospace;font-size:13px;color:var(--amber);
+      letter-spacing:.02em;
+    }
+
+    /* ── SETTINGS PAGE ── */
+    .settings-section{padding:20px 16px 0}
+    .settings-section-title{
+      font-size:11px;font-weight:600;text-transform:uppercase;
+      letter-spacing:.1em;color:var(--text-muted);margin-bottom:12px;
+    }
+    .settings-card{
+      background:var(--surface);border:1px solid var(--border2);
+      border-radius:12px;overflow:hidden;margin-bottom:16px;
+    }
+    .settings-row{
+      padding:14px 16px;border-bottom:1px solid var(--border);
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+    }
+    .settings-row:last-child{border-bottom:none}
+    .settings-row-label{font-size:14px;color:var(--text);font-weight:500}
+    .settings-row-value{font-size:13px;color:var(--text-muted);text-align:right;
+      flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .settings-fi{
+      background:var(--surface2);border:1.5px solid var(--border2);
+      color:var(--cream);padding:10px 12px;border-radius:8px;
+      font-family:'DM Sans',sans-serif;font-size:14px;outline:none;
+      width:100%;-webkit-appearance:none;
+    }
+    .settings-fi:focus{border-color:var(--amber-dim)}
+    .btn-settings-save{
+      background:var(--amber);color:#0d0c0a;border:none;border-radius:9px;
+      padding:12px;font-family:'DM Sans',sans-serif;font-weight:600;
+      font-size:14px;width:100%;cursor:pointer;margin-top:8px;
+    }
+    .btn-settings-save:active{transform:scale(.97)}
+    .danger-btn{
+      background:var(--terra-soft);color:var(--terra);
+      border:1.5px solid rgba(196,97,74,.3);border-radius:9px;
+      padding:12px;font-family:'DM Sans',sans-serif;font-weight:600;
+      font-size:14px;width:100%;cursor:pointer;margin-top:8px;
+    }
+
+    /* ── SETUP OVERLAY ── */
+    .setup-overlay{
+      position:fixed;inset:0;background:var(--bg);z-index:200;
+      display:flex;align-items:center;justify-content:center;
+      padding:24px;overflow-y:auto;
+    }
+    .setup-card{
+      background:var(--surface);border:1px solid var(--border2);
+      border-radius:18px;padding:28px 22px;width:100%;max-width:380px;
+    }
+    .setup-logo{font-size:28px;font-weight:700;color:var(--amber);text-align:center;margin-bottom:4px}
+    .setup-logo span{color:var(--terra)}
+    .setup-tagline{text-align:center;font-size:13px;color:var(--text-dim);
+      margin-bottom:24px;line-height:1.6}
+    .setup-field{margin-bottom:14px}
+    .setup-label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;
+      letter-spacing:.1em;color:var(--amber);margin-bottom:7px}
+    .setup-hint{font-size:12px;color:var(--text-muted);margin-top:5px}
+    .setup-hint a{color:var(--amber-dim)}
+    .setup-tip{
+      background:var(--amber-glow);border:1px solid var(--amber-dim);
+      border-radius:9px;padding:12px 14px;font-size:13px;color:var(--text-dim);
+      line-height:1.6;margin-bottom:20px;
+    }
+    .setup-tip strong{color:var(--amber)}
+
+    /* ── TOAST ── */
+    .toast{
+      position:fixed;bottom:calc(20px + var(--safe-b));left:50%;
+      transform:translateX(-50%) translateY(80px);
+      background:var(--surface2);border:1px solid var(--border2);
+      color:var(--text);padding:11px 20px;border-radius:10px;
+      font-size:14px;z-index:300;pointer-events:none;white-space:nowrap;
+      box-shadow:0 4px 20px rgba(0,0,0,.5);
+      transition:transform .28s cubic-bezier(.4,0,.2,1);
+    }
+    .toast.show{transform:translateX(-50%) translateY(0)}
+
+    /* ── SHARED CONTENT BANNER ── */
+    .shared-banner{
+      margin:16px;background:var(--green-soft);border:1px solid rgba(93,184,138,.4);
+      border-radius:12px;padding:14px 16px;display:none;
+    }
+    .shared-banner.show{display:block}
+    .shared-banner-title{font-size:13px;font-weight:600;color:var(--green);margin-bottom:6px}
+    .shared-url{font-size:12px;color:var(--text-dim);word-break:break-all;margin-bottom:10px}
+    .shared-btns{display:flex;gap:8px}
+  </style>
+</head>
+<body>
+
+<!-- ══ SETUP OVERLAY ══ -->
+<div class="setup-overlay" id="setupOverlay">
+  <div class="setup-card">
+    <div class="setup-logo">Reel<span>Queue</span></div>
+    <div class="setup-tagline">儲存 IG 美食 Reel 連結<br>回到電腦一次批次處理</div>
+    <div class="setup-tip">
+      <strong>💡 只需設定一次</strong><br>
+      填入你的 GitHub 資料，之後每次開啟就能直接使用
+    </div>
+    <div class="setup-field">
+      <label class="setup-label">GitHub Token</label>
+      <input type="password" class="fi" id="s_token" placeholder="ghp_..." autocomplete="off" autocorrect="off" autocapitalize="none">
+      <div class="setup-hint">在 GitHub Settings → Developer settings → Personal access tokens 取得</div>
+    </div>
+    <div class="setup-field">
+      <label class="setup-label">GitHub 用戶名</label>
+      <input type="text" class="fi" id="s_user" placeholder="例: xijinping-8964-ui" autocomplete="off" autocorrect="off" autocapitalize="none">
+    </div>
+    <div class="setup-field">
+      <label class="setup-label">Repo 名稱</label>
+      <input type="text" class="fi" id="s_repo" value="reelbites" autocomplete="off">
+    </div>
+    <div class="sb" id="setupSb"></div>
+    <button class="btn-settings-save" onclick="setupSave()">開始使用 →</button>
+  </div>
+</div>
+
+<!-- ══ NAV BAR ══ -->
+<div class="navbar">
+  <div class="nav-logo">Reel<span>Queue</span></div>
+  <div class="nav-count" id="navCount">0</div>
+</div>
+
+<!-- ══ TAB BAR ══ -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('add')" id="tab-add">➕ 加入</div>
+  <div class="tab" onclick="switchTab('queue')" id="tab-queue">📋 佇列</div>
+  <div class="tab" onclick="switchTab('settings')" id="tab-settings">⚙ 設定</div>
+</div>
+
+<!-- ══ ADD PAGE ══ -->
+<div class="page active" id="page-add">
+  <div class="add-hero">
+    <div class="add-hero-icon">🎬</div>
+    <div class="add-hero-title">加入 Reel 到佇列</div>
+    <div class="add-hero-sub">儲存連結，回電腦後一次處理</div>
+  </div>
+
+  <!-- Shared content from Instagram -->
+  <div class="shared-banner" id="sharedBanner">
+    <div class="shared-banner-title">📨 從 Instagram 分享過來的連結：</div>
+    <div class="shared-url" id="sharedUrl"></div>
+    <div class="shared-btns">
+      <button class="btn btn-add" onclick="saveSharedUrl()" style="flex:1">✓ 加入佇列</button>
+      <button class="btn btn-ghost" onclick="dismissShared()">取消</button>
+    </div>
+  </div>
+
+  <!-- Share from IG tip -->
+  <div class="share-tip">
+    <div class="share-tip-title">📱 最快方法：直接從 Instagram 分享</div>
+    <div class="share-tip-steps">
+      <b>①</b> 在 IG 開啟 Reel<br>
+      <b>②</b> 點右下角 <b>分享</b> 按鈕 (✈️)<br>
+      <b>③</b> 選 <b>「複製連結」</b> 或滑動找到 <b>「ReelQueue」</b><br>
+      <b>④</b> 貼到下方輸入框
+    </div>
+  </div>
+
+  <!-- Manual input -->
+  <div class="manual-section">
+    <div class="section-label">手動貼上連結</div>
+    <div class="input-row">
+      <input type="url" class="fi" id="urlInput"
+        placeholder="https://www.instagram.com/reel/..."
+        autocomplete="off" autocorrect="off" autocapitalize="none"
+        autocomplete="off">
+      <button class="btn btn-add" id="addBtn" onclick="addLink()">加入</button>
+    </div>
+    <div class="sb" id="addSb"></div>
+  </div>
+</div>
+
+<!-- ══ QUEUE PAGE ══ -->
+<div class="page" id="page-queue">
+  <div class="queue-header">
+    <div>
+      <div class="queue-title">待處理佇列</div>
+      <div class="queue-subtitle" id="queueSubtitle">讀取中...</div>
+    </div>
+    <button class="refresh-btn" onclick="loadQueue()">🔄</button>
+  </div>
+
+  <div class="process-banner">
+    <div class="process-banner-title">💻 回到電腦後</div>
+    <div class="process-banner-sub">在 Spyder 開啟並執行：</div>
+    <div class="code-block">process_queue.py</div>
+  </div>
+
+  <div id="queueList"></div>
+</div>
+
+<!-- ══ SETTINGS PAGE ══ -->
+<div class="page" id="page-settings">
+  <div class="settings-section">
+    <div class="settings-section-title">帳號設定</div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <div class="settings-row-label">用戶名</div>
+        <div class="settings-row-value" id="cfg-user">—</div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-label">Repo</div>
+        <div class="settings-row-value" id="cfg-repo">—</div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-label">Token</div>
+        <div class="settings-row-value" id="cfg-token">—</div>
+      </div>
+    </div>
+
+    <div class="settings-section-title">修改設定</div>
+    <div class="settings-card">
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+        <div class="settings-row-label">GitHub Token</div>
+        <input type="password" class="settings-fi" id="cfg_token" placeholder="ghp_..." autocomplete="off">
+      </div>
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+        <div class="settings-row-label">GitHub 用戶名</div>
+        <input type="text" class="settings-fi" id="cfg_user" placeholder="用戶名" autocomplete="off" autocapitalize="none">
+      </div>
+      <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:8px">
+        <div class="settings-row-label">Repo 名稱</div>
+        <input type="text" class="settings-fi" id="cfg_repo" placeholder="reelbites">
+      </div>
+    </div>
+    <button class="btn-settings-save" onclick="cfgSave()">儲存設定</button>
+
+    <div style="margin-top:24px">
+      <div class="settings-section-title">地圖網站</div>
+      <div class="settings-card">
+        <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+          <div class="settings-row-label">你的地圖 URL</div>
+          <div class="settings-row-value" id="mapUrl" style="font-size:12px;color:var(--amber);text-align:left;cursor:pointer" onclick="openMap()">點此開啟地圖</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px">
+      <div class="settings-section-title">危險操作</div>
+      <button class="danger-btn" onclick="clearQueue()">🗑 清空整個佇列</button>
+      <button class="danger-btn" style="margin-top:8px" onclick="resetSettings()">⚠ 重設所有設定</button>
+    </div>
+
+    <div style="height:40px"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+let TOKEN='', USER='', REPO='reelbites';
+let queueCache=[], queueSha=null;
+let sharedUrl='';
+
+const QUEUE_FILE = 'queue.json';
+function queueApiUrl(){ return `https://api.github.com/repos/${USER}/${REPO}/contents/${QUEUE_FILE}`; }
+function ghHeaders(){ return {'Authorization':`token ${TOKEN}`,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json','User-Agent':'ReelQueue/1.0'}; }
+
+// ── BOOT ──
+window.addEventListener('DOMContentLoaded', async () => {
+  TOKEN = ls('rb_q_token')||'';
+  USER  = ls('rb_q_user')||'';
+  REPO  = ls('rb_q_repo')||'reelbites';
+
+  if(TOKEN && USER){
+    document.getElementById('setupOverlay').style.display='none';
+    updateCfgDisplay();
+    loadQueue();
+    checkSharedUrl();
+  }
+});
+
+// ── Check if opened via Share Target or with ?url= param ──
+function checkSharedUrl(){
+  const params = new URLSearchParams(window.location.search);
+  const shared = params.get('url') || params.get('text') || params.get('title') || '';
+  const igMatch = shared.match(/https?:\/\/(?:www\.)?instagram\.com\/[^\s"']+/);
+  if(igMatch){
+    sharedUrl = igMatch[0];
+    document.getElementById('sharedUrl').textContent = sharedUrl;
+    document.getElementById('sharedBanner').classList.add('show');
+    // Clear the URL param
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+  // Also check clipboard on page focus
+  document.addEventListener('visibilitychange', checkClipboard);
+}
+
+async function checkClipboard(){
+  if(document.visibilityState !== 'visible') return;
+  try{
+    const text = await navigator.clipboard.readText();
+    if(text && text.includes('instagram.com/reel') && text !== ls('rb_last_clip')){
+      ls('rb_last_clip', text);
+      document.getElementById('urlInput').value = text;
+      toast('📋 已自動貼上剪貼板連結！');
+    }
+  }catch(e){}
+}
+
+function saveSharedUrl(){
+  document.getElementById('urlInput').value = sharedUrl;
+  document.getElementById('sharedBanner').classList.remove('show');
+  addLink();
+}
+function dismissShared(){
+  document.getElementById('sharedBanner').classList.remove('show');
+  sharedUrl = '';
+}
+
+// ── TABS ──
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('page-'+tab).classList.add('active');
+  if(tab==='queue') loadQueue();
+  if(tab==='settings') populateSettings();
+}
+
+// ── GITHUB ──
+async function ghGet(){
+  const r = await fetch(queueApiUrl(), {headers: ghHeaders()});
+  if(r.status===404){ return {data:[], sha:null}; }
+  if(!r.ok) throw new Error('GitHub 錯誤 '+r.status);
+  const j = await r.json();
+  const data = JSON.parse(atob(j.content.replace(/\n/g,'')));
+  return {data, sha: j.sha};
+}
+
+async function ghPut(data, sha, msg){
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(data,null,2))));
+  const body = {message:msg, content};
+  if(sha) body.sha = sha;
+  const r = await fetch(queueApiUrl(), {
+    method:'PUT', headers: ghHeaders(), body: JSON.stringify(body)
+  });
+  if(!r.ok){ const e=await r.json(); throw new Error(e.message||'寫入失敗'); }
+  const resp = await r.json();
+  return resp.content?.sha || sha;
+}
+
+// ── LOAD QUEUE ──
+async function loadQueue(){
+  try{
+    const {data, sha} = await ghGet();
+    queueCache = data;
+    queueSha = sha;
+    renderQueue(data);
+    updateNavCount(data.length);
+  }catch(e){
+    document.getElementById('queueList').innerHTML =
+      `<div class="empty-state"><div class="empty-icon">⚠</div><div class="empty-title">讀取失敗</div><div class="empty-sub">${e.message}</div></div>`;
+  }
+}
+
+function renderQueue(items){
+  const el = document.getElementById('queueList');
+  const sub = document.getElementById('queueSubtitle');
+  sub.textContent = items.length ? `${items.length} 個連結等待處理` : '佇列是空的';
+
+  if(!items.length){
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">🎉</div>
+      <div class="empty-title">佇列是空的</div>
+      <div class="empty-sub">到「加入」頁面貼上 Reel 連結<br>或回電腦開啟 process_queue.py</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = items.map((item,i)=>`
+    <div class="q-item">
+      <div class="q-num">${i+1}</div>
+      <div class="q-info">
+        <div class="q-url">${esc(item.url)}</div>
+        <div class="q-date">${esc(item.added||'')}</div>
+      </div>
+      <button class="btn-danger-sm" onclick="removeItem(${i})">✕</button>
+    </div>`).join('');
+}
+
+function updateNavCount(n){
+  const el = document.getElementById('navCount');
+  el.textContent = n;
+  el.classList.toggle('show', n > 0);
+}
+
+// ── ADD LINK ──
+async function addLink(){
+  const raw = document.getElementById('urlInput').value.trim();
+  const sb  = document.getElementById('addSb');
+  const btn = document.getElementById('addBtn');
+
+  // Accept full URL or shortcode
+  const igMatch = raw.match(/https?:\/\/(?:www\.)?instagram\.com\/[^\s"']+/);
+  const url = igMatch ? igMatch[0] : (raw.startsWith('http') ? raw : '');
+
+  if(!url){ showSb(sb,'err','請輸入 Instagram Reel 連結'); return; }
+  if(!url.includes('instagram.com')){ showSb(sb,'err','請輸入 Instagram 連結'); return; }
+
+  btn.disabled=true; btn.textContent='加入中...';
+  showSb(sb,'loading','<span class="spin"></span>儲存中...');
+
+  try{
+    const {data, sha} = await ghGet();
+    if(data.some(d=>d.url===url)){
+      showSb(sb,'err','此連結已在佇列中 ✓'); btn.disabled=false; btn.textContent='加入'; return;
+    }
+    data.push({url, added: new Date().toLocaleString('zh-TW')});
+    queueSha = await ghPut(data, sha, 'Queue: add reel');
+    queueCache = data;
+    document.getElementById('urlInput').value='';
+    showSb(sb,'ok','✅ 已加入！回電腦後執行 process_queue.py');
+    updateNavCount(data.length);
+    toast('✅ 已加入佇列！');
+  }catch(e){ showSb(sb,'err','失敗: '+e.message); }
+  btn.disabled=false; btn.textContent='加入';
+}
+
+async function removeItem(index){
+  try{
+    const {data, sha} = await ghGet();
+    const removed = data[index]?.url || '';
+    data.splice(index,1);
+    queueSha = await ghPut(data, sha, 'Queue: remove item');
+    queueCache = data;
+    renderQueue(data);
+    updateNavCount(data.length);
+    toast('已移除');
+  }catch(e){ toast('移除失敗: '+e.message); }
+}
+
+async function clearQueue(){
+  if(!confirm('確定清空所有佇列？')) return;
+  try{
+    const {sha} = await ghGet();
+    queueSha = await ghPut([], sha, 'Queue: clear all');
+    queueCache = [];
+    renderQueue([]);
+    updateNavCount(0);
+    toast('佇列已清空');
+  }catch(e){ toast('失敗: '+e.message); }
+}
+
+// ── SETTINGS ──
+function setupSave(){
+  const t = document.getElementById('s_token').value.trim();
+  const u = document.getElementById('s_user').value.trim();
+  const r = document.getElementById('s_repo').value.trim()||'reelbites';
+  const sb = document.getElementById('setupSb');
+  if(!t||!u){ showSb(sb,'err','請填寫所有必填欄位'); return; }
+  TOKEN=t; USER=u; REPO=r;
+  ls('rb_q_token',t); ls('rb_q_user',u); ls('rb_q_repo',r);
+  document.getElementById('setupOverlay').style.display='none';
+  updateCfgDisplay();
+  loadQueue();
+  checkSharedUrl();
+  toast('✅ 設定完成！');
+}
+
+function cfgSave(){
+  const t = document.getElementById('cfg_token').value.trim();
+  const u = document.getElementById('cfg_user').value.trim();
+  const r = document.getElementById('cfg_repo').value.trim()||'reelbites';
+  if(!t||!u){ toast('請填寫所有欄位'); return; }
+  TOKEN=t; USER=u; REPO=r;
+  ls('rb_q_token',t); ls('rb_q_user',u); ls('rb_q_repo',r);
+  updateCfgDisplay();
+  toast('✅ 設定已儲存');
+}
+
+function updateCfgDisplay(){
+  document.getElementById('cfg-user').textContent = USER||'—';
+  document.getElementById('cfg-repo').textContent = REPO||'—';
+  document.getElementById('cfg-token').textContent = TOKEN ? TOKEN.slice(0,8)+'...' : '—';
+  const url = `https://${USER}.github.io/${REPO}`;
+  document.getElementById('mapUrl').textContent = url;
+}
+
+function populateSettings(){
+  document.getElementById('cfg_token').value = TOKEN;
+  document.getElementById('cfg_user').value  = USER;
+  document.getElementById('cfg_repo').value  = REPO;
+  updateCfgDisplay();
+}
+
+function openMap(){
+  window.open(`https://${USER}.github.io/${REPO}`, '_blank');
+}
+
+function resetSettings(){
+  if(!confirm('確定重設所有設定？需要重新輸入 GitHub Token')) return;
+  ['rb_q_token','rb_q_user','rb_q_repo','rb_last_clip'].forEach(k=>localStorage.removeItem(k));
+  location.reload();
+}
+
+// ── UTILS ──
+function ls(k,v){ if(v===undefined)return localStorage.getItem(k); localStorage.setItem(k,v); }
+function showSb(el,type,msg){ el.className='sb '+type; el.innerHTML=msg; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toast(msg,dur=2600){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),dur);
+}
+
+// Enter key on URL input
+document.addEventListener('DOMContentLoaded',()=>{
+  const inp = document.getElementById('urlInput');
+  if(inp) inp.addEventListener('keydown', e=>{ if(e.key==='Enter') addLink(); });
+});
+</script>
+
+</body>
+</html>
