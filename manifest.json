@@ -1,0 +1,35 @@
+{
+  "name": "ReelQueue — 美食 Reel 佇列",
+  "short_name": "ReelQueue",
+  "description": "儲存 Instagram 美食 Reel 連結到佇列",
+  "start_url": "/reelbites/queue.html",
+  "scope": "/reelbites/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0c0a",
+  "theme_color": "#0d0c0a",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%230d0c0a'/><text y='130' x='96' text-anchor='middle' font-size='110' font-family='system-ui'>🎬</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%230d0c0a'/><text y='360' x='256' text-anchor='middle' font-size='300' font-family='system-ui'>🎬</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "share_target": {
+    "action": "/reelbites/queue.html",
+    "method": "GET",
+    "params": {
+      "url": "url",
+      "text": "text",
+      "title": "title"
+    }
+  },
+  "categories": ["food", "lifestyle", "utilities"]
+}
