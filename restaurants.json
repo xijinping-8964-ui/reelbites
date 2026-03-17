@@ -57,5 +57,39 @@
     "lat": 25.0126463,
     "lng": 121.4574068,
     "date": "2026年03月14日"
+  },
+  {
+    "id": "17737612887834",
+    "name": "食徒麻辣火鍋",
+    "address": "臺北市中山區復興南路一段20號",
+    "city": "台北市",
+    "region": "北市中山區",
+    "cuisine": "火鍋",
+    "recs": [],
+    "notes": "",
+    "url": "https://www.instagram.com/reel/DVdNecOiTWL/?igsh=ejZrN2ViZjIzemU5",
+    "lat": 25.0462623,
+    "lng": 121.5438298,
+    "date": "2026年03月17日"
+  },
+  {
+    "id": "17737613668684",
+    "name": "凱薩披薩 Caesar’s Pizza 蘆洲店",
+    "address": "新北市蘆洲區民族路331-19號",
+    "city": "新北市",
+    "region": "新北市蘆洲區",
+    "cuisine": "披薩",
+    "recs": [
+      "新北",
+      "新北美食",
+      "披薩",
+      "炸雞",
+      "taipeifood"
+    ],
+    "notes": "",
+    "url": "https://www.instagram.com/reel/DVx0eZfDyV9/?igsh=MTNiM3hwbzVicXB1dA==",
+    "lat": 25.087748,
+    "lng": 121.47682,
+    "date": "2026年03月17日"
   }
 ]
